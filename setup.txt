@@ -1,0 +1,82 @@
+#
+# for copy paste to console
+#
+
+
+
+#
+export DISK="/dev/sda"
+export GRUB="$\{DISK\}1"
+export SWAP="$\{DISK\}2"
+export ROOT="$\{DISK\}3"
+export HOSTNAME="docker"
+
+# --------------------------------------------------------------------------------
+
+loadkeys de-latin1
+
+setfont ter-v20n # small
+setfont ter-132b # medium
+
+ip link show up
+ip addr 
+ping -c 5 ping.archlinux.org
+
+timedatectl
+
+fdisk -l ${DISK}
+
+echo "BIOS boot partions"
+echo "${DISK}1 PRIM ID:4  BIOS | FAT <32m (for boot via BIOS) +16M"
+echo "${DISK}2 PRIM ID:82 Linux Swap +32G"
+echo "${DISK}3 PRIM ID:83 Linux <all>"
+
+# --------------------------------------------------------------------------------
+# cfdisk ${DISK}
+# --------------------------------------------------------------------------------
+
+fdisk -l ${DISK}
+
+mkfs.fat     ${GRUB}
+mkswap    -f ${SWAP}
+mkfs.ext4 -F ${ROOT}
+
+mount ${ROOT} /mnt
+mount --mkdir ${GRUB} /mnt/boot
+swapon ${SWAP}
+
+pacstrap -K /mnt base linux linux-firmware nano vim
+
+genfstab -U /mnt >> /mnt/etc/fstab
+
+arch-chroot -S /mnt
+
+# --------------------------------------------------------------------------------
+
+ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime
+
+hwclock --systohc
+
+locale-gen
+
+echo "LANG=en_US.UTF8" >> /etc/locale.conf
+
+echo "KEYMAP=de-latin1" >> /etc/vconsole.conf
+
+echo "${HOSTNAME}" >> /etc/hostname
+
+mkinitcpio -P
+
+passwd
+
+# --------------------------------------------------------------------------------
+
+pacman -S --noconfigm grub
+
+grub-install --target=i386-pc /dev/sda
+
+grub-mkconfig -o /boot/grub/grub.cfg
+
+# --------------------------------------------------------------------------------
+
+# EOF
